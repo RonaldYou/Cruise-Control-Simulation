@@ -61,4 +61,4 @@ void Vehicle::update(double throttle, double dt) {
     double F_net = F_engine - F_drag - F_roll;
     double acceleration = F_net / mass;
     speed_ = std::max(0.0, speed_ + acceleration * dt);
-}doxdox
+}

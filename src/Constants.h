@@ -9,4 +9,12 @@ namespace PhysicsConstants {
     const double GRAVITY = 9.81;
 }
 
+namespace SedanConstants {
+    const double KERB_WEIGHT = 1310.0 //kg
+    const double MAX_ENGINE_FORCE = 6333.33 //N
+    const double DRAG_COEFFICIENT = 0.31;
+    const double FRONTAL_AREA = 3.214; //m^2
+    const double ROLLING_RESISTANCE_COEFFICIENT = 0.015;
+}
+
 #endif
