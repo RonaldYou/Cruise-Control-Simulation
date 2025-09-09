@@ -25,6 +25,8 @@ class Vehicle{
         [[nodiscard]] double getMaxEngineForce() const noexcept { return maxEngineForce_; }
 
         void update(double throttle, double dt);
+
+        virtual ~Vehicle() = default;
 };
 
 #endif // VEHICLE_H

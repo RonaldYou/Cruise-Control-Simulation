@@ -55,10 +55,10 @@ Vehicle::Vehicle(double mass,
  * @note Rolling resistance: F_roll = Cr * m * g
  */
 void Vehicle::update(double throttle, double dt) {
-    double F_engine = throttle * maxEngineForce;
-    double F_drag = 0.5 * PhysicsConstants::RHO * dragCoef * frontalArea * speed * speed;
-    double F_roll = rollingResistanceCoef * mass * PhysicsConstants::GRAVITY;
+    double F_engine = throttle * maxEngineForce_;
+    double F_drag = 0.5 * PhysicsConstants::RHO * dragCoef_ * frontalArea_ * speed_ * speed_;
+    double F_roll = rollingResistanceCoef_ * mass_ * PhysicsConstants::GRAVITY;
     double F_net = F_engine - F_drag - F_roll;
-    double acceleration = F_net / mass;
+    double acceleration = F_net / mass_;
     speed_ = std::max(0.0, speed_ + acceleration * dt);
 }

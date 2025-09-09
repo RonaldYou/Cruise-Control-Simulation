@@ -13,6 +13,8 @@ class Car : public Vehicle {
             double maxEngineForce);
 
         explicit Car();
+
+        ~Car() override = default;
 };
 
 #endif // CAR_H

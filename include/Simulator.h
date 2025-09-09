@@ -16,6 +16,7 @@ class Simulator {
         Simulator(Vehicle* vehicle, Controller* controller);
         void run();
         void log(double time, double speed, double throttle);
+        ~Simulator() = default;
 };
 
 #endif // SIMULATOR_H

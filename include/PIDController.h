@@ -13,6 +13,7 @@ class PIDController : public Controller {
     public:
         PIDController(double kp, double ki, double kd);
         double compute(double setpoint, double measurement, double dt) override;
+        virtual ~PIDController() = default;
 };
 
 #endif // PIDCONTROLLER_H

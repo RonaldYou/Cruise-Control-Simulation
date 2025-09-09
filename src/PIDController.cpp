@@ -9,5 +9,5 @@ double PIDController::compute(double setpoint, double measurement, double dt) {
     integral_ += error * dt;
     double derivative = (error - prevError_) / dt;
     prevError_ = error;
-    return clamp(kp_ * error + ki_ * integral_ + kd_ * derivative, 0.0, 1.0);
+    return std::clamp(kp_ * error + ki_ * integral_ + kd_ * derivative, 0.0, 1.0);
 }
