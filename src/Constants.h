@@ -17,4 +17,8 @@ namespace SedanConstants {
     const double ROLLING_RESISTANCE_COEFFICIENT = 0.015;
 }
 
+namespace SimulationConstants{
+    const double TIME_STEP = 0.1;  // seconds
+}
+
 #endif
