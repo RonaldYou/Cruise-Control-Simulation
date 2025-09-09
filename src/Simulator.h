@@ -3,6 +3,7 @@
 
 #include "Controller.h"
 #include "Constants.h"
+#include "Vehicle.h"
 
 class Simulator {
     private:
