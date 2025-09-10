@@ -4,7 +4,7 @@
 
 int main() {
     Vehicle* vehicle = new Car();
-    Controller* controller = new PIDController(0.03, 0.006, 0.0);
+    Controller* controller = new PIDController(0.3, 0.05, 0.05);
     Simulator* simulator = new Simulator(vehicle, controller);
     simulator->run();
     delete vehicle;

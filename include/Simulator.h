@@ -15,7 +15,7 @@ class Simulator {
     public:
         Simulator(Vehicle* vehicle, Controller* controller);
         void run();
-        void log(double time, double speed, double throttle);
+        void log(double time, double speed, double throttle, bool logFile);
         ~Simulator() = default;
 };
 
