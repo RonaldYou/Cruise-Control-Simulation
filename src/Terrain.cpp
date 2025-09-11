@@ -61,6 +61,7 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         line = std::string(TerrainConstants::DISPLAY_WIDTH, ' ');
     }
 
+    //index 0 is top of display
     for (size_t i = 0; i < elevationHistory_.size(); ++i) {
         double normalizedElev = (elevationHistory_[i] - minElev) / elevRange;
         int row = static_cast<int>((1.0 - normalizedElev) * (TerrainConstants::DISPLAY_HEIGHT - 1));
@@ -84,7 +85,7 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         carRow = std::clamp(carRow, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
         
         if (carRow > 0) {
-            display[carRow - 1][TerrainConstants::DISPLAY_WIDTH - 1] = 'c';  // Car above terrain
+            display[carRow - 1][elevationHistory_.size() - 1] = 'c';  // Car above terrain
         }
     }
 
