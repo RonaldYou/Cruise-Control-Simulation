@@ -22,8 +22,8 @@ namespace TerrainConstants {
     inline constexpr double MAX_GRADE = 0.15;                // 15% max grade (steep!)
     inline constexpr double MIN_GRADE = -0.15;               // -15% max downhill
     inline constexpr double GRADE_SMOOTHING = 0.8;           // How gradually grade changes
-    inline constexpr int DISPLAY_WIDTH = 60;                 // ASCII display width
-    inline constexpr int DISPLAY_HEIGHT = 10;                // ASCII display height
+    inline constexpr int DISPLAY_WIDTH = 80;                 // ASCII display width
+    inline constexpr int DISPLAY_HEIGHT = 15;                // ASCII display height
 }
 
 namespace SimulationConstants{

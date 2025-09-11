@@ -61,11 +61,11 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         line = std::string(TerrainConstants::DISPLAY_WIDTH, ' ');
     }
 
-    //index 0 is top of display
+    //index 0 is top of dis
     for (size_t i = 0; i < elevationHistory_.size(); ++i) {
         double normalizedElev = (elevationHistory_[i] - minElev) / elevRange;
-        int row = static_cast<int>((1.0 - normalizedElev) * (TerrainConstants::DISPLAY_HEIGHT - 1));
-        row = std::clamp(row, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
+        int row = static_cast<int>((1.0 - normalizedElev) * (TerrainConstants::DISPLAY_HEIGHT - 2) + 1);
+        row = std::clamp(row, 1, TerrainConstants::DISPLAY_HEIGHT - 1);
         
         if (i < TerrainConstants::DISPLAY_WIDTH) {
             display[row][i] = '-';
@@ -75,19 +75,23 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
                 display[fillRow][i] = '-';
             }
         }
+
+        if(i == elevationHistory_.size()){
+            display[row - 1][i] = 'c';  // Car above terrain
+        }
     }
 
     // Add car at the rightmost position
-    if (!elevationHistory_.empty()) {
-        double carElev = elevationHistory_.back();
-        double normalizedCarElev = (carElev - minElev) / elevRange;
-        int carRow = static_cast<int>((1.0 - normalizedCarElev) * (TerrainConstants::DISPLAY_HEIGHT - 1));
-        carRow = std::clamp(carRow, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
+    // if (!elevationHistory_.empty()) {
+    //     double carElev = elevationHistory_.back();
+    //     double normalizedCarElev = (carElev - minElev) / elevRange;
+    //     int carRow = static_cast<int>((1.0 - normalizedCarElev) * (TerrainConstants::DISPLAY_HEIGHT - 1));
+    //     carRow = std::clamp(carRow, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
         
-        if (carRow > 0) {
-            display[carRow - 1][elevationHistory_.size() - 1] = 'c';  // Car above terrain
-        }
-    }
+    //     if (carRow > 0) {
+    //         display[carRow - 1][elevationHistory_.size() - 1] = 'c';  // Car above terrain
+    //     }
+    // }
 
     std::ostringstream gradeInfo;
     gradeInfo << "Current Grade: " << std::fixed << std::setprecision(1) 

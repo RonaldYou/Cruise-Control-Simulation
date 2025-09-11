@@ -3,6 +3,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 
 Simulator::Simulator(Vehicle* vehicle, Controller* controller) : vehicle_(vehicle), controller_(controller){
     std::cout<<"What is the target speed? ";
@@ -12,6 +13,7 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller) : vehicle_(vehicl
 void Simulator::run(){
     Terrain terrain;
     double elevation = 0.0;
+    bool firstFrame = true;
 
     while(true){
 
@@ -25,24 +27,36 @@ void Simulator::run(){
         elevation += speed * terrain.getCurrentGrade() * dt;
         terrain.addElevationPoint(elevation);
 
-        system("clear");
-
-        auto terrainDisplay = terrain.getASCIIDisplay();
-        std::cout << "=== CRUISE CONTROL SIMULATION ===\n\n";
         
-        for (const auto& line : terrainDisplay) {
-            std::cout << line << "\n";
+        auto terrainDisplay = terrain.getASCIIDisplay();
+        
+        if(!firstFrame){
+            int totalLines = 2 + terrainDisplay.size();
+            std::cout<< "\033["<< totalLines << "A";
         }
 
-        log(time, speed, throttle, false);
+        std::cout << "=== CRUISE CONTROL SIMULATION ===\n";
+        
+        
+        for (const auto& line : terrainDisplay) {
+            std::cout << line << std::string(80, ' ') << "\n"; // Clear rest of line
+        }
+
+        firstFrame = false;
+        std::cout << "Time: " << time << "| Target: " << targetSpeed_ << "| Speed: " << speed << "| Throttle: " << throttle<< std::string(80, ' ') << "\n";
+
+        std::cout.flush();
+
+        //log(time, speed, throttle, false);
+        std::cout.flush();
         time += dt;
         std::this_thread::sleep_for(std::chrono::milliseconds(SimulationConstants::LOOP_DELAY));
     }
 }
 
 void Simulator::log(double time, double speed, double throttle, bool logFile){
-    std::cout << "\rTime: " << time << "| Target: " << targetSpeed_ << "| Speed: " << speed << "| Throttle: " << throttle << "     ";
-    std::cout.flush();
+    std::cout << "Time: " << time << "| Target: " << targetSpeed_ << "| Speed: " << speed << "| Throttle: " << throttle << "     ";
+    //std::cout.flush();
 
     if(logFile){
         std::ofstream Log("../simulation.csv", std::ios::app);
