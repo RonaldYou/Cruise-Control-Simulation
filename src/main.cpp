@@ -3,12 +3,9 @@
 #include "PIDController.h"
 
 int main() {
-    Vehicle* vehicle = new Car();
-    Controller* controller = new PIDController(0.3, 0.05, 0.05);
-    Simulator* simulator = new Simulator(vehicle, controller);
+    std::unique_ptr<Vehicle> vehicle = std::make_unique<Car>();
+    std::unique_ptr<Controller> controller = std::make_unique<PIDController>(0.3, 0.05, 0.05);
+    std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(vehicle.get(), controller.get());
     simulator->run();
-    delete vehicle;
-    delete controller;
-    delete simulator;
     return 0;
 }
