@@ -1,6 +1,8 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
+#include "Constants.h"
+
 class Terrain{
     private:
         double currentGrade_;

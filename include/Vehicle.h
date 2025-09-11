@@ -24,7 +24,7 @@ class Vehicle{
         [[nodiscard]] double getRollingResistanceCoef() const noexcept { return rollingResistanceCoef_; }
         [[nodiscard]] double getMaxEngineForce() const noexcept { return maxEngineForce_; }
 
-        void update(double throttle, double dt);
+        void update(double throttle, double dt, double terrainForce);
 
         virtual ~Vehicle() = default;
 };
