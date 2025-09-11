@@ -4,6 +4,7 @@
 #include "Controller.h"
 #include "Constants.h"
 #include "Vehicle.h"
+#include "Terrain.h"
 
 class Simulator {
     private:

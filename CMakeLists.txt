@@ -17,6 +17,7 @@ set(SOURCES
     src/Car.cpp
     src/PIDController.cpp
     src/Simulator.cpp
+    src/Terrain.cpp
 )
 
 # Build executable

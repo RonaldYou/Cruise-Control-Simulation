@@ -10,11 +10,31 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller) : vehicle_(vehicl
 }
 
 void Simulator::run(){
+    Terrain terrain;
+    double elevation = 0.0;
+
     while(true){
+
+        terrain.update(dt);
+        
         double speed = vehicle_->getSpeed();
         double throttle = controller_->compute(targetSpeed_, speed, dt);
-        vehicle_->update(throttle, dt);
-        log(time, speed, throttle, true);
+        double terrainForce = terrain.getGradeForce(vehicle_->getMass());
+
+        vehicle_->update(throttle, dt, terrainForce);
+        elevation += speed * terrain.getCurrentGrade() * dt;
+        terrain.addElevationPoint(elevation);
+
+        system("clear");
+
+        auto terrainDisplay = terrain.getASCIIDisplay();
+        std::cout << "=== CRUISE CONTROL SIMULATION ===\n\n";
+        
+        for (const auto& line : terrainDisplay) {
+            std::cout << line << "\n";
+        }
+
+        log(time, speed, throttle, false);
         time += dt;
         std::this_thread::sleep_for(std::chrono::milliseconds(SimulationConstants::LOOP_DELAY));
     }

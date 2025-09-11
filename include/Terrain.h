@@ -2,6 +2,8 @@
 #define TERRAIN_H
 
 #include "Constants.h"
+#include <vector>
+#include <random>
 
 class Terrain{
     private:
@@ -14,7 +16,7 @@ class Terrain{
 
     public:
         Terrain();
-        ~Terrain();
+        ~Terrain() = default;
 
         void update(double dt);
         [[nodiscard]] double getCurrentGrade() const;

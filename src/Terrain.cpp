@@ -1,4 +1,8 @@
 #include "Terrain.h"
+#include <algorithm>
+#include <sstream>
+#include <cmath>
+#include <iomanip>
 
 Terrain::Terrain()
     : currentGrade_ (0.0),
@@ -11,12 +15,16 @@ Terrain::Terrain()
 
 void Terrain::update(double dt){
     //randomly decide to change target grade
-    if(changeDist_(rng_) < TerrainConstants::CHANGE_PROBABILITY){
+    if(changeDist_(rng_) < TerrainConstants::HILL_CHANGE_PROBABILITY){
         targetGrade_ = gradeDist_(rng_);
     }
 
     double gradeDiff = targetGrade_ - currentGrade_;
-    currentGrade_ += gradeDiff * TerrainConstants::GRADE_CHANGE_SPEED * dt;
+    currentGrade_ += gradeDiff * TerrainConstants::GRADE_SMOOTHING * dt;
+}
+
+double Terrain::getCurrentGrade() const {
+    return currentGrade_;
 }
 
 double Terrain::getGradeForce(double mass) const{
@@ -41,7 +49,7 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         return display;
     }
 
-    auto minMax = std::minmax_element(elevationHistory.begin(), elevationHistory.end());
+    auto minMax = std::minmax_element(elevationHistory_.begin(), elevationHistory_.end());
     double minElev = *minMax.first;
     double maxElev = *minMax.second;
     double elevRange = maxElev - minElev;
@@ -59,11 +67,11 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         row = std::clamp(row, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
         
         if (i < TerrainConstants::DISPLAY_WIDTH) {
-            display[row][i] = '█';
+            display[row][i] = '-';
             
             // Fill below the terrain line
             for (int fillRow = row + 1; fillRow < TerrainConstants::DISPLAY_HEIGHT; ++fillRow) {
-                display[fillRow][i] = '▓';
+                display[fillRow][i] = '-';
             }
         }
     }
@@ -76,7 +84,7 @@ std::vector<std::string> Terrain::getASCIIDisplay() const{
         carRow = std::clamp(carRow, 0, TerrainConstants::DISPLAY_HEIGHT - 1);
         
         if (carRow > 0) {
-            display[carRow - 1][TerrainConstants::DISPLAY_WIDTH - 1] = '🚗';  // Car above terrain
+            display[carRow - 1][TerrainConstants::DISPLAY_WIDTH - 1] = 'c';  // Car above terrain
         }
     }
 
