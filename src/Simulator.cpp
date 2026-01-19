@@ -1,55 +1,130 @@
+/*
+ * Simulator.cpp - Main Simulation Loop Implementation
+ */
+
 #include "Simulator.h"
+#include "Constants.h"
+#include <glm/glm.hpp>
 #include <iostream>
 #include <fstream>
 #include <thread>
 #include <chrono>
-#include <cstdlib>
 
-Simulator::Simulator(Vehicle* vehicle, Controller* controller) : vehicle_(vehicle), controller_(controller){
-    std::cout<<"What is the target speed? ";
-    std::cin>>targetSpeed_;
+/* =============================================================================
+ * Constructor - Initialize simulation and renderer
+ * ============================================================================= */
+Simulator::Simulator(Vehicle* vehicle, Controller* controller)
+    : vehicle_(vehicle)
+    , controller_(controller)
+    , targetSpeed_(0.0)
+    , carPositionZ_(0.0)
+{
+    /* Get target speed from user (in km/h, converted to m/s internally) */
+    double targetKmh;
+    std::cout << "What is the target speed (km/h)? ";
+    std::cin >> targetKmh;
+    targetSpeed_ = targetKmh / 3.6;  /* Convert km/h to m/s */
+
+    /* Create the OpenGL renderer
+     *
+     * Window size: 1280x720 (720p)
+     * This also initializes GLFW and OpenGL context
+     */
+    renderer_ = std::make_unique<Renderer>(1280, 720, "Cruise Control Simulation");
 }
 
-void Simulator::run(){
+/* =============================================================================
+ * run() - Main simulation loop
+ *
+ * This loop runs until the window is closed. Each iteration:
+ * 1. Physics update (fixed timestep)
+ * 2. Render the current state
+ *
+ * Note: For simplicity, we're using a fixed timestep for both physics and
+ * rendering. A more sophisticated approach would decouple them (fixed
+ * physics timestep, variable render rate).
+ * ============================================================================= */
+void Simulator::run() {
     Terrain terrain;
-    double elevation = 0.0;
-    bool firstFrame = true;
 
-    while(true){
+    /*
+     * Main loop - runs until user closes the window
+     *
+     * GLFW tracks window close requests (clicking X, pressing Alt+F4, etc.)
+     * renderer_->shouldClose() checks this flag.
+     */
+    while (!renderer_->shouldClose()) {
+        /* Update terrain (randomly changes grade over time) */
+        terrain.update(dt_);
 
-        terrain.update(dt);
-        
+        /* Get current vehicle speed */
         double speed = vehicle_->getSpeed();
-        double throttle = controller_->compute(targetSpeed_, speed, dt);
+
+        /* Compute throttle from cruise control (PID controller)
+         *
+         * The controller compares target speed to actual speed and
+         * outputs a throttle value (0.0 to 1.0) to minimize the error.
+         */
+        double throttle = controller_->compute(targetSpeed_, speed, dt_);
+
+        /* Calculate force from terrain grade
+         *
+         * Uphill (positive grade): negative force (resists motion)
+         * Downhill (negative grade): positive force (assists motion)
+         */
         double terrainForce = terrain.getGradeForce(vehicle_->getMass());
 
-        vehicle_->update(throttle, dt, terrainForce);
-        elevation += speed * terrain.getCurrentGrade() * dt;
-        terrain.addElevationPoint(elevation);
+        /* Update vehicle physics
+         *
+         * This applies throttle and terrain forces to compute new velocity.
+         */
+        vehicle_->update(throttle, dt_, terrainForce);
 
-        
-        auto terrainDisplay = terrain.getASCIIDisplay();
-        
-        if(!firstFrame){
-            int totalLines = 2 + terrainDisplay.size();
-            std::cout<< "\033["<< totalLines << "A";
-        }
+        /* Update car position (integrate velocity)
+         *
+         * For visualization, we track the car's Z position (forward distance).
+         * The car stays at X=0, Y=0 in the world, moving forward along +Z.
+         */
+        carPositionZ_ += speed * dt_;
 
-        std::cout << "=== CRUISE CONTROL SIMULATION ===\n";
-        
-        
-        for (const auto& line : terrainDisplay) {
-            std::cout << line << std::string(80, ' ') << "\n"; // Clear rest of line
-        }
+        /* Update simulation time */
+        time_ += dt_;
 
-        firstFrame = false;
-        std::cout << "Time: " << time << "| Target: " << targetSpeed_ << "| Speed: " << speed << "| Throttle: " << throttle<< std::string(80, ' ') << "\n";
+        /* =====================================================================
+         * RENDERING
+         * ===================================================================== */
 
-        std::cout.flush();
+        /* Prepare for rendering (clear buffers) */
+        renderer_->beginFrame();
 
-        //log(time, speed, throttle, false);
-        std::cout.flush();
-        time += dt;
+        /* Build car position vector for renderer
+         *
+         * X: 0 (centered on road)
+         * Y: 0 (on the road surface)
+         * Z: distance traveled (forward)
+         */
+        glm::vec3 carPos(-3.0f, 0.0f, static_cast<float>(carPositionZ_));
+
+        /* Render the scene */
+        renderer_->render(carPos,
+                          static_cast<float>(speed),
+                          static_cast<float>(targetSpeed_),
+                          static_cast<float>(throttle),
+                          static_cast<float>(terrain.getCurrentGrade()));
+
+        /* Finish frame (swap buffers, poll events) */
+        renderer_->endFrame();
+
+        /* Log to console (optional, for debugging)
+         * Commented out to avoid console spam during rendering */
+        // log(time_, speed, throttle, false);
+
+        /* Sleep to achieve real-time simulation (1 simulated second = 1 real second)
+         *
+         * LOOP_DELAY (200ms) matches TIME_STEP (0.2s), so each loop iteration
+         * advances 0.2 simulated seconds and waits 0.2 real seconds.
+         * This keeps simulation time synchronized with wall-clock time.
+         */
         std::this_thread::sleep_for(std::chrono::milliseconds(SimulationConstants::LOOP_DELAY));
     }
 }
