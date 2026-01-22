@@ -77,40 +77,33 @@ glm::mat4 Camera::getViewMatrix() const {
 }
 
 /* =============================================================================
- * getProjectionMatrix() - Create the perspective projection matrix
+ * getProjectionMatrix() - Create the projection matrix
  *
- * glm::perspective() creates a matrix that:
- * 1. Applies perspective division (farther = smaller)
- * 2. Maps the viewing frustum to a normalized cube [-1, 1]
+ * Returns either perspective or orthographic projection based on mode.
  *
- * Parameters:
- *   fov:    Field of view angle (in radians) - how "wide" the view is
- *           45 degrees is standard; larger = wider/more distorted
- *   aspect: Width/height ratio - prevents stretching
- *   near:   Near clipping plane - objects closer are invisible
- *   far:    Far clipping plane - objects farther are invisible
+ * PERSPECTIVE (default):
+ * glm::perspective() creates a matrix that applies perspective division
+ * (farther objects appear smaller). Used for 3rd-person view.
  *
- * The "frustum" is a truncated pyramid shape representing visible space:
- *
- *              Far plane
- *           _______________
- *          /               \
- *         /                 \
- *        /                   \
- *       /                     \
- *      /_______________________\
- *      |       Near plane      |
- *      |         (eye)         |
- *
- * Everything inside this shape is visible; everything outside is clipped.
+ * ORTHOGRAPHIC:
+ * glm::ortho() creates a matrix where parallel lines stay parallel
+ * (no perspective distortion). Used for bird's eye and side views.
  * ============================================================================= */
 glm::mat4 Camera::getProjectionMatrix() const {
-    return glm::perspective(
-        glm::radians(fov_),  /* Convert degrees to radians (OpenGL uses radians) */
-        aspectRatio_,         /* Prevent distortion based on window shape */
-        nearPlane_,           /* Near clip distance */
-        farPlane_             /* Far clip distance */
-    );
+    if (isOrthographic_) {
+        return glm::ortho(
+            orthoLeft_, orthoRight_,   /* Left, right bounds */
+            orthoBottom_, orthoTop_,   /* Bottom, top bounds */
+            nearPlane_, farPlane_      /* Near, far clip planes */
+        );
+    } else {
+        return glm::perspective(
+            glm::radians(fov_),  /* Convert degrees to radians */
+            aspectRatio_,         /* Prevent distortion */
+            nearPlane_,           /* Near clip distance */
+            farPlane_             /* Far clip distance */
+        );
+    }
 }
 
 /* =============================================================================
@@ -121,4 +114,43 @@ glm::mat4 Camera::getProjectionMatrix() const {
  * ============================================================================= */
 void Camera::setAspectRatio(float ratio) {
     aspectRatio_ = ratio;
+}
+
+/* =============================================================================
+ * setOrthographic() - Configure orthographic projection
+ *
+ * Orthographic projection has no perspective (parallel lines stay parallel).
+ * Useful for top-down and side views where consistent scale is important.
+ * ============================================================================= */
+void Camera::setOrthographic(float left, float right, float bottom, float top, float near, float far) {
+    isOrthographic_ = true;
+    orthoLeft_ = left;
+    orthoRight_ = right;
+    orthoBottom_ = bottom;
+    orthoTop_ = top;
+    nearPlane_ = near;
+    farPlane_ = far;
+}
+
+/* =============================================================================
+ * setPerspective() - Configure perspective projection
+ *
+ * Returns to standard perspective projection (distant objects appear smaller).
+ * ============================================================================= */
+void Camera::setPerspective(float fov, float aspectRatio) {
+    isOrthographic_ = false;
+    fov_ = fov;
+    aspectRatio_ = aspectRatio;
+}
+
+/* =============================================================================
+ * setPositionAndTarget() - Manually position the camera
+ *
+ * Used for fixed-angle views (bird's eye, side view) where the camera
+ * doesn't follow behind a target.
+ * ============================================================================= */
+void Camera::setPositionAndTarget(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up) {
+    position_ = position;
+    target_ = target;
+    up_ = up;
 }

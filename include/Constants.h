@@ -32,4 +32,11 @@ namespace SimulationConstants{
     const long LOOP_DELAY = 200; //ms
 }
 
+namespace TrafficConstants{
+    const int NUM_CARS = 1;
+    const int SPEED_BOUNDS = 10;
+    const float SPAWN_DISTANCE_AHEAD = 150.0f;   // Spawn when entering view
+    const float DESPAWN_DISTANCE_BEHIND = -30.0f; // Remove when well behind camera
+}
+
 #endif

@@ -66,6 +66,18 @@ public:
     void setFollowDistance(float distance) { followDistance_ = distance; }
     void setHeight(float height) { height_ = height; }
 
+    /* Set orthographic projection (for bird's eye and side views) */
+    void setOrthographic(float left, float right, float bottom, float top, float near, float far);
+
+    /* Set perspective projection (default, for 3rd-person view) */
+    void setPerspective(float fov, float aspectRatio);
+
+    /* Check projection type */
+    [[nodiscard]] bool isOrthographic() const { return isOrthographic_; }
+
+    /* Manually set camera position and target (for fixed-angle views) */
+    void setPositionAndTarget(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up);
+
     /* Get camera position (for lighting calculations, etc.) */
     [[nodiscard]] glm::vec3 getPosition() const { return position_; }
 
@@ -84,6 +96,10 @@ private:
     float fov_;               /* Field of view in degrees (how "wide" the view is) */
     float nearPlane_;         /* Closest visible distance (clips anything closer) */
     float farPlane_;          /* Farthest visible distance (clips anything beyond) */
+
+    /* Orthographic projection parameters */
+    bool isOrthographic_ = false;
+    float orthoLeft_, orthoRight_, orthoBottom_, orthoTop_;
 };
 
 #endif // CAMERA_H

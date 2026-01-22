@@ -13,6 +13,7 @@
 
 #include "Controller.h"
 #include "Constants.h"
+#include "TrafficVehicle.h"
 #include "Vehicle.h"
 #include "Terrain.h"
 #include "Renderer.h"
@@ -57,6 +58,12 @@ private:
 
     /* Car's position in 3D space (Z = forward distance traveled) */
     double carPositionZ_ = 0.0;
+    std::vector<TrafficVehicle>traffic_;
+
+    /* Elevation tracking for terrain visualization */
+    double currentElevation_ = 0.0;
+    std::vector<float> elevationHistory_;
+    static constexpr size_t MAX_ELEVATION_HISTORY = 300;  /* 300 meters of history */
 };
 
 #endif // SIMULATOR_H

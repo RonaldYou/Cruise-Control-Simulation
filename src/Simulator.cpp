@@ -85,7 +85,26 @@ void Simulator::run() {
          * For visualization, we track the car's Z position (forward distance).
          * The car stays at X=0, Y=0 in the world, moving forward along +Z.
          */
-        carPositionZ_ += speed * dt_;
+        double distanceTraveled = speed * dt_;
+        carPositionZ_ += distanceTraveled;
+
+        /* Update elevation based on current grade
+         * elevation change = distance * grade (rise = run * slope) */
+        double grade = terrain.getCurrentGrade();
+        currentElevation_ += distanceTraveled * grade;
+
+        /* Store elevation history (approximately one point per meter) */
+        static double distanceSinceLastPoint = 0.0;
+        distanceSinceLastPoint += distanceTraveled;
+        if (distanceSinceLastPoint >= 1.0) {
+            elevationHistory_.push_back(static_cast<float>(currentElevation_));
+            distanceSinceLastPoint = 0.0;
+
+            /* Keep history bounded */
+            if (elevationHistory_.size() > MAX_ELEVATION_HISTORY) {
+                elevationHistory_.erase(elevationHistory_.begin());
+            }
+        }
 
         /* Update simulation time */
         time_ += dt_;
@@ -99,18 +118,19 @@ void Simulator::run() {
 
         /* Build car position vector for renderer
          *
-         * X: 0 (centered on road)
-         * Y: 0 (on the road surface)
+         * X: -3 (in left lane)
+         * Y: current elevation
          * Z: distance traveled (forward)
          */
-        glm::vec3 carPos(-3.0f, 0.0f, static_cast<float>(carPositionZ_));
+        glm::vec3 carPos(-3.0f, static_cast<float>(currentElevation_), static_cast<float>(carPositionZ_));
 
         /* Render the scene */
         renderer_->render(carPos,
                           static_cast<float>(speed),
                           static_cast<float>(targetSpeed_),
                           static_cast<float>(throttle),
-                          static_cast<float>(terrain.getCurrentGrade()));
+                          static_cast<float>(grade),
+                          elevationHistory_);
 
         /* Finish frame (swap buffers, poll events) */
         renderer_->endFrame();

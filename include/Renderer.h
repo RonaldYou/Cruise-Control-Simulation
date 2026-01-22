@@ -31,6 +31,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
+#include <vector>
 
 /* Forward declarations (avoid including heavy headers) */
 class Shader;
@@ -77,14 +78,16 @@ public:
      * render() - Draw the simulation scene
      *
      * Parameters:
-     *   carPosition   - World position of the car (x, y, z)
-     *   carSpeed      - Current speed in m/s
-     *   targetSpeed   - Target cruise control speed in m/s
-     *   throttle      - Current throttle input (0.0 to 1.0)
-     *   terrainGrade  - Current road grade (-1 to 1, for road tilt)
+     *   carPosition      - World position of the car (x, y, z)
+     *   carSpeed         - Current speed in m/s
+     *   targetSpeed      - Target cruise control speed in m/s
+     *   throttle         - Current throttle input (0.0 to 1.0)
+     *   terrainGrade     - Current road grade (-1 to 1, for road tilt)
+     *   elevationHistory - History of elevation values for terrain profile
      * ========================================================================= */
     void render(const glm::vec3& carPosition, float carSpeed, float targetSpeed,
-                float throttle, float terrainGrade);
+                float throttle, float terrainGrade,
+                const std::vector<float>& elevationHistory);
 
     /* =========================================================================
      * Input Handling (for future use)
@@ -104,6 +107,8 @@ private:
     /* Scene geometry */
     std::unique_ptr<Mesh> carMesh_;
     std::unique_ptr<Mesh> roadMesh_;
+    std::unique_ptr<Mesh> groundMesh_;       /* Large ground plane (grass) */
+    std::unique_ptr<Mesh> skyMesh_;          /* Background for side view */
     std::unique_ptr<Mesh> centerLineMesh_;   /* Dashed yellow center line */
     std::unique_ptr<Mesh> leftEdgeLineMesh_; /* Solid white left edge */
     std::unique_ptr<Mesh> rightEdgeLineMesh_;/* Solid white right edge */
@@ -115,6 +120,16 @@ private:
     void initOpenGL();
     void initShaders();
     void initGeometry();
+
+    /* =========================================================================
+     * Split-Screen View Rendering
+     * ========================================================================= */
+    void renderBirdEyeView(const glm::vec3& carPosition, float grade);
+    void renderSideView(const glm::vec3& carPosition, float grade,
+                        const std::vector<float>& elevationHistory);
+    void renderThirdPersonView(const glm::vec3& carPosition, float grade);
+    void renderTerrainProfile(const glm::vec3& carPosition,
+                              const std::vector<float>& elevationHistory);
 
     /* =========================================================================
      * Rendering Helpers
