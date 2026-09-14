@@ -9,6 +9,8 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <algorithm>
+#include <random>
 
 /* =============================================================================
  * Constructor - Initialize simulation and renderer
@@ -18,6 +20,7 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller)
     , controller_(controller)
     , targetSpeed_(0.0)
     , carPositionZ_(0.0)
+    , rng_(std::random_device{}())
 {
     /* Get target speed from user (in km/h, converted to m/s internally) */
     double targetKmh;
@@ -31,6 +34,8 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller)
      * This also initializes GLFW and OpenGL context
      */
     renderer_ = std::make_unique<Renderer>(1280, 720, "Cruise Control Simulation");
+
+    initializeTraffic();
 }
 
 /* =============================================================================
@@ -88,6 +93,9 @@ void Simulator::run() {
         double distanceTraveled = speed * dt_;
         carPositionZ_ += distanceTraveled;
 
+        /* Update background traffic vehicles */
+        updateTraffic();
+
         /* Update elevation based on current grade
          * elevation change = distance * grade (rise = run * slope) */
         double grade = terrain.getCurrentGrade();
@@ -130,7 +138,8 @@ void Simulator::run() {
                           static_cast<float>(targetSpeed_),
                           static_cast<float>(throttle),
                           static_cast<float>(grade),
-                          elevationHistory_);
+                          elevationHistory_,
+                          traffic_);
 
         /* Finish frame (swap buffers, poll events) */
         renderer_->endFrame();
@@ -146,6 +155,37 @@ void Simulator::run() {
          * This keeps simulation time synchronized with wall-clock time.
          */
         std::this_thread::sleep_for(std::chrono::milliseconds(SimulationConstants::LOOP_DELAY));
+    }
+}
+
+void Simulator::initializeTraffic() {
+    traffic_.clear();
+
+    std::uniform_int_distribution<int> laneDist(0, 2);
+    std::uniform_real_distribution<double> speedOffsetDist(-2.0, 1.0);
+
+    for (int i = 0; i < TrafficConstants::NUM_CARS; ++i) {
+        TrafficVehicle vehicle;
+        vehicle.positionZ = carPositionZ_ + TrafficConstants::SPAWN_DISTANCE_AHEAD + (i * 18.0);
+        vehicle.lane = laneDist(rng_);
+        vehicle.speed = std::max(1.0, targetSpeed_ + speedOffsetDist(rng_));
+        traffic_.push_back(vehicle);
+    }
+}
+
+void Simulator::updateTraffic() {
+    std::uniform_int_distribution<int> laneDist(0, 2);
+    std::uniform_real_distribution<double> speedOffsetDist(-3.0, 2.0);
+
+    for (TrafficVehicle& vehicle : traffic_) {
+        vehicle.positionZ += vehicle.speed * dt_;
+
+        const double relativeZ = vehicle.positionZ - carPositionZ_;
+        if (relativeZ < TrafficConstants::DESPAWN_DISTANCE_BEHIND) {
+            vehicle.positionZ = carPositionZ_ + TrafficConstants::SPAWN_DISTANCE_AHEAD + 50.0;
+            vehicle.lane = laneDist(rng_);
+            vehicle.speed = std::max(1.0, targetSpeed_ + speedOffsetDist(rng_));
+        }
     }
 }
 

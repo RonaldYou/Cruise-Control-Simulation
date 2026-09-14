@@ -32,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "TrafficVehicle.h"
 
 /* Forward declarations (avoid including heavy headers) */
 class Shader;
@@ -87,7 +88,8 @@ public:
      * ========================================================================= */
     void render(const glm::vec3& carPosition, float carSpeed, float targetSpeed,
                 float throttle, float terrainGrade,
-                const std::vector<float>& elevationHistory);
+                const std::vector<float>& elevationHistory,
+                const std::vector<TrafficVehicle>& trafficVehicles);
 
     /* =========================================================================
      * Input Handling (for future use)
@@ -106,6 +108,7 @@ private:
 
     /* Scene geometry */
     std::unique_ptr<Mesh> carMesh_;
+    std::unique_ptr<Mesh> trafficCarMesh_;
     std::unique_ptr<Mesh> roadMesh_;
     std::unique_ptr<Mesh> groundMesh_;       /* Large ground plane (grass) */
     std::unique_ptr<Mesh> skyMesh_;          /* Background for side view */
@@ -136,6 +139,9 @@ private:
      * ========================================================================= */
     void renderRoad(const glm::vec3& carPosition, float grade);
     void renderCar(const glm::vec3& carPosition);
+    void renderTrafficVehicles(const std::vector<TrafficVehicle>& trafficVehicles,
+                               float carPositionZ,
+                               bool flattenY);
     void printStats(float speed, float targetSpeed, float throttle, float grade);
 
     /* GLFW callbacks (must be static, but can access instance via user pointer) */

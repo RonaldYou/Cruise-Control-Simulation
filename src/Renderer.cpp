@@ -181,6 +181,10 @@ void Renderer::initGeometry() {
     glm::vec3 carColor(0.2f, 0.4f, 0.8f);  /* Blue */
     carMesh_ = std::make_unique<Mesh>(Mesh::createBox(2.0f, 1.5f, 4.0f, carColor));
 
+    /* Traffic cars: warm color to contrast with ego vehicle */
+    glm::vec3 trafficColor(0.9f, 0.35f, 0.2f);  /* Orange-red */
+    trafficCarMesh_ = std::make_unique<Mesh>(Mesh::createBox(2.0f, 1.5f, 4.0f, trafficColor));
+
     /* Road dimensions */
     const float roadWidth = 12.0f;
     const float roadLength = 300.0f;
@@ -278,7 +282,8 @@ void Renderer::endFrame() {
  * ============================================================================= */
 void Renderer::render(const glm::vec3& carPosition, float carSpeed, float targetSpeed,
                       float throttle, float terrainGrade,
-                      const std::vector<float>& elevationHistory) {
+                      const std::vector<float>& elevationHistory,
+                      const std::vector<TrafficVehicle>& trafficVehicles) {
     int halfHeight = height_ / 2;
     int sideViewWidth = width_ * 3 / 4;
     int pipWidth = width_ - sideViewWidth;
@@ -288,6 +293,7 @@ void Renderer::render(const glm::vec3& carPosition, float carSpeed, float target
      * ========================================================================= */
     glViewport(0, halfHeight, width_, halfHeight);
     renderBirdEyeView(carPosition, terrainGrade);
+    renderTrafficVehicles(trafficVehicles, carPosition.z, true);
 
     /* =========================================================================
      * Side View (bottom-left, 75% width)
@@ -300,6 +306,7 @@ void Renderer::render(const glm::vec3& carPosition, float carSpeed, float target
      * ========================================================================= */
     glViewport(sideViewWidth, 0, pipWidth, halfHeight);
     renderThirdPersonView(carPosition, terrainGrade);
+    renderTrafficVehicles(trafficVehicles, carPosition.z, true);
 
     /* =========================================================================
      * Cleanup - Restore full viewport
@@ -375,6 +382,34 @@ void Renderer::renderCar(const glm::vec3& carPosition) {
 
     shader_->setMat4("model", model);
     carMesh_->draw();
+}
+
+void Renderer::renderTrafficVehicles(const std::vector<TrafficVehicle>& trafficVehicles,
+                                     float carPositionZ,
+                                     bool flattenY) {
+    for (const TrafficVehicle& traffic : trafficVehicles) {
+        const float relativeZ = static_cast<float>(traffic.positionZ - carPositionZ);
+        if (relativeZ < -40.0f || relativeZ > 220.0f) {
+            continue;
+        }
+
+        float laneX = -3.0f;
+        if (traffic.lane == 1) {
+            laneX = 0.0f;
+        } else if (traffic.lane == 2) {
+            laneX = 3.0f;
+        }
+
+        glm::vec3 trafficPos(laneX,
+                             flattenY ? 0.0f : 0.75f,
+                             static_cast<float>(traffic.positionZ));
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, trafficPos + glm::vec3(0.0f, 0.75f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.95f, 1.0f, 0.95f));
+        shader_->setMat4("model", model);
+        trafficCarMesh_->draw();
+    }
 }
 
 /* =============================================================================
@@ -580,7 +615,10 @@ void Renderer::renderTerrainProfile(const glm::vec3& carPosition,
     float startZ = carPosition.z - (numPoints - 1) * metersPerPoint;
 
     /* Create terrain mesh - a series of connected quads */
-    float bottomY = -10.0f;  /* Below visible area */
+    auto [minIt, maxIt] = std::minmax_element(elevationHistory.begin(), elevationHistory.end());
+    (void)maxIt;
+    float minElevation = *minIt;
+    float bottomY = minElevation - 15.0f;  /* Keep fill baseline below all visible terrain */
 
     for (size_t i = 0; i < numPoints; ++i) {
         float z = startZ + i * metersPerPoint;

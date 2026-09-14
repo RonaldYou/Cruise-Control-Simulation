@@ -33,9 +33,9 @@ namespace SimulationConstants{
 }
 
 namespace TrafficConstants{
-    const int NUM_CARS = 1;
+    const int NUM_CARS = 6;
     const int SPEED_BOUNDS = 10;
-    const float SPAWN_DISTANCE_AHEAD = 150.0f;   // Spawn when entering view
+    const float SPAWN_DISTANCE_AHEAD = 60.0f;   // Spawn inside the initial camera frustum
     const float DESPAWN_DISTANCE_BEHIND = -30.0f; // Remove when well behind camera
 }
 

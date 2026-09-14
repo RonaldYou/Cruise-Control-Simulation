@@ -62,6 +62,8 @@ set(SOURCES
     src/Car.cpp
     src/PIDController.cpp
     src/Simulator.cpp
+    src/TrafficPerception.cpp
+    src/TrafficFSM.cpp
     src/Terrain.cpp
     src/Shader.cpp
     src/Camera.cpp

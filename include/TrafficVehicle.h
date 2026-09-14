@@ -4,7 +4,7 @@
 
 struct TrafficVehicle{
     double positionZ;
-    double lane;
+    int lane;
     double speed;
 };
 
