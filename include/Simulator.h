@@ -14,6 +14,7 @@
 #include "Controller.h"
 #include "Constants.h"
 #include "TrafficVehicle.h"
+#include "TrafficFSM.h"
 #include "Vehicle.h"
 #include "Terrain.h"
 #include "Renderer.h"
@@ -58,7 +59,11 @@ private:
     std::unique_ptr<Renderer> renderer_;
 
     /* Car's position in 3D space (Z = forward distance traveled) */
+    std::unique_ptr<traffic::TrafficFSMController> egoTrafficController_;
     double carPositionZ_ = 0.0;
+    double carPositionX_ = -3.0;
+    int egoLane_ = 0;
+    int egoLaneChangeTarget_ = -1;
     std::vector<TrafficVehicle>traffic_;
     std::mt19937 rng_;
 
@@ -69,6 +74,10 @@ private:
 
     void initializeTraffic();
     void updateTraffic();
+    traffic::TrafficScene buildTrafficScene() const;
+    traffic::VehicleSnapshot buildEgoSnapshot(double speed) const;
+    double laneCenterX(int lane) const;
+    void updateEgoLanePosition(const traffic::ControlCommand& command);
 };
 
 #endif // SIMULATOR_H

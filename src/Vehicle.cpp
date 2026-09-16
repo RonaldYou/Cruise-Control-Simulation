@@ -54,11 +54,16 @@ Vehicle::Vehicle(double mass,
  * @note Uses standard aerodynamic drag equation: F_drag = 0.5 * ρ * Cd * A * v²
  * @note Rolling resistance: F_roll = Cr * m * g
  */
-void Vehicle::update(double throttle, double dt, double terrainForce) {
-    double F_engine = throttle * maxEngineForce_;
+void Vehicle::update(double throttle, double brake, double dt, double terrainForce) {
+    const double clampedThrottle = std::clamp(throttle, 0.0, 1.0);
+    const double clampedBrake = std::clamp(brake, 0.0, 1.0);
+    const double maxBrakeForce = 1.2 * maxEngineForce_;
+
+    double F_engine = clampedThrottle * maxEngineForce_;
+    double F_brake = clampedBrake * maxBrakeForce;
     double F_drag = 0.5 * PhysicsConstants::RHO * dragCoef_ * frontalArea_ * speed_ * speed_;
     double F_roll = rollingResistanceCoef_ * mass_ * PhysicsConstants::GRAVITY;
-    double F_net = F_engine - F_drag - F_roll + terrainForce;
+    double F_net = F_engine - F_brake - F_drag - F_roll + terrainForce;
     double acceleration = F_net / mass_;
     speed_ = std::max(0.0, speed_ + acceleration * dt);
 }

@@ -20,6 +20,9 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller)
     , controller_(controller)
     , targetSpeed_(0.0)
     , carPositionZ_(0.0)
+    , carPositionX_(-3.0)
+    , egoLane_(0)
+    , egoLaneChangeTarget_(-1)
     , rng_(std::random_device{}())
 {
     /* Get target speed from user (in km/h, converted to m/s internally) */
@@ -34,6 +37,13 @@ Simulator::Simulator(Vehicle* vehicle, Controller* controller)
      * This also initializes GLFW and OpenGL context
      */
     renderer_ = std::make_unique<Renderer>(1280, 720, "Cruise Control Simulation");
+
+    traffic::TrafficTuningConfig tuning;
+    tuning.desired_cruise_speed_mps = targetSpeed_;
+    tuning.follow_entry_distance_m = 45.0;
+    tuning.desired_time_gap_s = 1.8;
+    tuning.critical_ttc_s = 1.4;
+    egoTrafficController_ = std::make_unique<traffic::TrafficFSMController>(tuning);
 
     initializeTraffic();
 }
@@ -65,12 +75,19 @@ void Simulator::run() {
         /* Get current vehicle speed */
         double speed = vehicle_->getSpeed();
 
-        /* Compute throttle from cruise control (PID controller)
-         *
-         * The controller compares target speed to actual speed and
-         * outputs a throttle value (0.0 to 1.0) to minimize the error.
-         */
-        double throttle = controller_->compute(targetSpeed_, speed, dt_);
+        traffic::TrafficContext egoContext;
+        egoContext.ego = buildEgoSnapshot(speed);
+        egoContext.traffic = buildTrafficScene();
+        egoContext.dt_s = dt_;
+        egoContext.min_lane = 0;
+        egoContext.max_lane = 2;
+        egoContext.spatial_config.max_detection_distance_m = 120.0;
+        egoContext.spatial_config.min_front_gap_m = 14.0;
+        egoContext.spatial_config.min_rear_gap_m = 10.0;
+
+        const traffic::ControlCommand egoCommand = egoTrafficController_->step(egoContext);
+        const double throttle = egoCommand.throttle;
+        const double brake = egoCommand.brake;
 
         /* Calculate force from terrain grade
          *
@@ -83,7 +100,10 @@ void Simulator::run() {
          *
          * This applies throttle and terrain forces to compute new velocity.
          */
-        vehicle_->update(throttle, dt_, terrainForce);
+        vehicle_->update(throttle, brake, dt_, terrainForce);
+        updateEgoLanePosition(egoCommand);
+
+        speed = vehicle_->getSpeed();
 
         /* Update car position (integrate velocity)
          *
@@ -130,13 +150,15 @@ void Simulator::run() {
          * Y: current elevation
          * Z: distance traveled (forward)
          */
-        glm::vec3 carPos(-3.0f, static_cast<float>(currentElevation_), static_cast<float>(carPositionZ_));
+        glm::vec3 carPos(static_cast<float>(carPositionX_),
+                 static_cast<float>(currentElevation_),
+                 static_cast<float>(carPositionZ_));
 
         /* Render the scene */
         renderer_->render(carPos,
                           static_cast<float>(speed),
                           static_cast<float>(targetSpeed_),
-                          static_cast<float>(throttle),
+                          static_cast<float>(throttle - brake),
                           static_cast<float>(grade),
                           elevationHistory_,
                           traffic_);
@@ -171,6 +193,18 @@ void Simulator::initializeTraffic() {
         vehicle.speed = std::max(1.0, targetSpeed_ + speedOffsetDist(rng_));
         traffic_.push_back(vehicle);
     }
+
+    if (!traffic_.empty()) {
+        traffic_[0].lane = egoLane_;
+        traffic_[0].positionZ = carPositionZ_ + 30.0;
+        traffic_[0].speed = std::max(1.0, targetSpeed_ - 7.0);
+    }
+
+    if (traffic_.size() > 1) {
+        traffic_[1].lane = 1;
+        traffic_[1].positionZ = carPositionZ_ + 90.0;
+        traffic_[1].speed = targetSpeed_ + 1.0;
+    }
 }
 
 void Simulator::updateTraffic() {
@@ -187,6 +221,73 @@ void Simulator::updateTraffic() {
             vehicle.speed = std::max(1.0, targetSpeed_ + speedOffsetDist(rng_));
         }
     }
+}
+
+traffic::TrafficScene Simulator::buildTrafficScene() const {
+    traffic::TrafficScene scene;
+    scene.reserve(traffic_.size());
+
+    for (size_t index = 0; index < traffic_.size(); ++index) {
+        traffic::VehicleSnapshot snapshot;
+        snapshot.id = static_cast<int>(index + 1);
+        snapshot.lane = traffic_[index].lane;
+        snapshot.kinematics.position.x_m = laneCenterX(traffic_[index].lane);
+        snapshot.kinematics.position.y_m = 0.0;
+        snapshot.kinematics.position.z_m = traffic_[index].positionZ;
+        snapshot.kinematics.velocity.z_mps = traffic_[index].speed;
+        scene.push_back(snapshot);
+    }
+
+    return scene;
+}
+
+traffic::VehicleSnapshot Simulator::buildEgoSnapshot(double speed) const {
+    traffic::VehicleSnapshot ego;
+    ego.id = 0;
+    ego.lane = egoLane_;
+    ego.kinematics.position.x_m = carPositionX_;
+    ego.kinematics.position.y_m = 0.0;
+    ego.kinematics.position.z_m = carPositionZ_;
+    ego.kinematics.velocity.z_mps = speed;
+    return ego;
+}
+
+double Simulator::laneCenterX(int lane) const {
+    switch (lane) {
+        case 0:
+            return -3.0;
+        case 1:
+            return 0.0;
+        case 2:
+            return 3.0;
+        default:
+            return -3.0;
+    }
+}
+
+void Simulator::updateEgoLanePosition(const traffic::ControlCommand& command) {
+    if (command.initiate_lane_change) {
+        egoLaneChangeTarget_ = command.desired_lane;
+    }
+
+    if (egoLaneChangeTarget_ < 0) {
+        return;
+    }
+
+    const double targetX = laneCenterX(egoLaneChangeTarget_);
+    const double maxStep = std::abs(command.lateral_velocity_mps) > 0.0
+        ? std::abs(command.lateral_velocity_mps) * dt_
+        : 1.0 * dt_;
+    const double deltaX = targetX - carPositionX_;
+
+    if (std::abs(deltaX) <= maxStep) {
+        carPositionX_ = targetX;
+        egoLane_ = egoLaneChangeTarget_;
+        egoLaneChangeTarget_ = -1;
+        return;
+    }
+
+    carPositionX_ += (deltaX > 0.0 ? 1.0 : -1.0) * maxStep;
 }
 
 void Simulator::log(double time, double speed, double throttle, bool logFile){
